@@ -386,34 +386,8 @@ npm run dev
 
 ---
 
-## 14. Running Tests
 
-The test suite covers calculator evaluation, live weather retrieval, Redis caching with TTL and hit/miss tracking, API key encryption/masking, and session lifecycles.
 
-Execute tests with pytest:
-```bash
-pytest backend/tests -v
-```
-
-Expected output:
-```text
-backend/tests/test_cache.py::test_cache_miss_and_hit PASSED
-backend/tests/test_cache.py::test_cache_invalidation PASSED
-backend/tests/test_calculator.py::test_basic_arithmetic PASSED
-backend/tests/test_calculator.py::test_operator_precedence PASSED
-backend/tests/test_calculator.py::test_constants PASSED
-backend/tests/test_calculator.py::test_functions PASSED
-backend/tests/test_calculator.py::test_division_by_zero PASSED
-backend/tests/test_calculator.py::test_syntax_error PASSED
-backend/tests/test_calculator.py::test_empty_expression PASSED
-backend/tests/test_chat.py::test_session_lifecycle PASSED
-backend/tests/test_config.py::test_encryption_and_decryption PASSED
-backend/tests/test_config.py::test_api_key_masking PASSED
-backend/tests/test_weather.py::test_weather_retrieval_success PASSED
-backend/tests/test_weather.py::test_weather_invalid_location PASSED
-
-============================= 14 passed in 26.37s =============================
-```
 
 ---
 
@@ -428,4 +402,6 @@ backend/tests/test_weather.py::test_weather_invalid_location PASSED
    - Implement hierarchical LangGraph graphs with specialized supervisor and worker agents for complex research or coding tasks.
 4. **Export & Sharing**:
    - Allow exporting conversations to Markdown, PDF, or shareable public links.
-
+  
+5. **Implement for MCP connectors**:
+   - Implement API for live data fetching for different scenarios from user side
