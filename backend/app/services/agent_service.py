@@ -20,6 +20,12 @@ from app.models.message import ChatMessage
 from app.models.session import ConversationSession
 from app.services.llm_factory import LLMFactory, calculate_cost
 from app.services.mcp_client import mcp_client
+from app.services.prompt_guard import (
+    detect_prompt_injection,
+    harden_system_prompt,
+    wrap_retrieved_context,
+    wrap_user_input,
+)
 from app.services.token_tracker import extract_token_counts, record_token_usage
 
 logger = logging.getLogger(__name__)
@@ -180,6 +186,33 @@ class AgentService:
         db.add(user_msg)
         await db.commit()
 
+        # 1. Prompt Injection & Jailbreak Heuristic Scan
+        is_injection, injection_reason = detect_prompt_injection(user_message_text)
+        if is_injection:
+            logger.warning(
+                f"Prompt injection intercepted: reason='{injection_reason}' | query='{user_message_text[:80]}'"
+            )
+            refusal_text = (
+                "I cannot fulfill this request because it contains instructions that attempt to override "
+                "safety guidelines, alter system instructions, or extract internal configuration. "
+                "Please rephrase your inquiry."
+            )
+            for word in refusal_text.split(" "):
+                yield f"event: token\ndata: {json.dumps({'token': word + ' '})}\n\n"
+
+            # Save refusal response to database
+            assistant_msg = ChatMessage(
+                session_id=session.id,
+                role="assistant",
+                content=refusal_text,
+            )
+            db.add(assistant_msg)
+            await db.commit()
+            await db.refresh(assistant_msg)
+
+            yield f"event: done\ndata: {json.dumps({'message_id': assistant_msg.id, 'session_id': session.id, 'content': refusal_text})}\n\n"
+            return
+
         # Load history
         history = await AgentService.load_conversation_history(
             db=db,
@@ -187,12 +220,15 @@ class AgentService:
             memory_window=memory_window,
         )
 
-        # Assemble prompt chain with system prompt and history
-        messages: List[BaseMessage] = [SystemMessage(content=system_prompt)]
+        # 2. Harden System Prompt with XML boundary and untrusted data directives
+        hardened_prompt = harden_system_prompt(system_prompt)
+        messages: List[BaseMessage] = [SystemMessage(content=hardened_prompt)]
         messages.extend(history)
-        # Ensure the current user message is at the end
+
+        # 3. Enclose active user turn within structural <user_input> tags
+        wrapped_user_turn = wrap_user_input(user_message_text)
         if not history or history[-1].content != user_message_text:
-            messages.append(HumanMessage(content=user_message_text))
+            messages.append(HumanMessage(content=wrapped_user_turn))
 
         # Instantiate LLM
         try:
@@ -261,8 +297,12 @@ class AgentService:
                     # Emit tool_end SSE event
                     yield f"event: tool_end\ndata: {json.dumps({'tool': t_name, 'result': t_result, 'cache_hit': cache_hit, 'id': t_id})}\n\n"
 
-                    # Add tool response to message history
-                    messages.append(ToolMessage(content=str(t_result), tool_call_id=t_id))
+                    # Add tool response to message history with XML boundary protection against indirect injection
+                    wrapped_tool_result = wrap_retrieved_context(
+                        content=str(t_result),
+                        source=f"{t_name} (args: {t_args})"
+                    )
+                    messages.append(ToolMessage(content=wrapped_tool_result, tool_call_id=t_id))
 
                 # Step 2: Stream final synthesized answer from LLM with tool outputs
                 async for chunk in llm.astream(messages):

@@ -1,6 +1,6 @@
 """
 Database Engine, Async Session, and Base Model Declaration.
-Supports SQLite (async with aiosqlite) and PostgreSQL (async with asyncpg).
+Configured for PostgreSQL (async with asyncpg).
 """
 
 from typing import AsyncGenerator
@@ -17,19 +17,10 @@ db_url = settings.DATABASE_URL
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# Check if asyncpg is available; if not (e.g. local host Windows dev), fall back to SQLite
-if "postgresql" in db_url:
-    try:
-        import asyncpg  # noqa: F401
-    except ImportError:
-        db_url = "sqlite+aiosqlite:///./chatbot.db"
-
 engine = create_async_engine(
     db_url,
     echo=settings.DEBUG,
     future=True,
-    # SQLite-specific connect args
-    connect_args={"check_same_thread": False} if "sqlite" in db_url else {},
 )
 
 AsyncSessionLocal = async_sessionmaker(

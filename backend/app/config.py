@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "sqlite+aiosqlite:///./chatbot.db"
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/mcp_chatbot"
     )
 
     # Redis Cache Configuration

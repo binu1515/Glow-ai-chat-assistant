@@ -61,7 +61,7 @@ This application delivers an end-to-end architecture demonstrating:
 - Automatic tool binding and invocation via LangChain tool-calling agents.
 
 ### D. Chat Memory Management
-- Multi-turn conversation persistence in PostgreSQL / SQLite.
+- Multi-turn conversation persistence in PostgreSQL.
 - Sliding window context windowing: loads recent message pairs while maintaining token budget.
 - Preserves both user turns, tool invocations, tool outputs, and assistant syntheses.
 
@@ -144,8 +144,8 @@ flowchart TD
 | **ASGI Server** | Uvicorn | 0.30+ | ASGI web server |
 | **AI Orchestration** | LangChain & LangGraph | 0.3+ | Tool calling agent loop and memory |
 | **MCP SDK** | Official MCP Python SDK | 1.30+ / 2.3+ | Model Context Protocol server and client |
-| **Relational Database** | PostgreSQL / SQLite | 16-alpine | Persistent chat sessions, logs, and docs |
-| **ORM** | SQLAlchemy (Async) + aiosqlite / asyncpg | 2.0+ | Non-blocking async database layer |
+| **Relational Database** | PostgreSQL | 16-alpine | Persistent chat sessions, logs, and docs |
+| **ORM** | SQLAlchemy (Async) + asyncpg | 2.0+ | Non-blocking async database layer |
 | **Caching Layer** | Redis + redis-py (asyncio) | 7-alpine | In-memory key-value cache with TTL |
 | **HTTP Clients** | HTTPX | 0.27+ | Asynchronous REST and SSE client |
 | **Cryptography** | Cryptography (Fernet) | 43.0+ | AES-256 encryption for API keys |
@@ -247,13 +247,16 @@ $$\text{Cost} = \left(\frac{\text{prompt\_tokens}}{1{,}000{,}000} \times \text{i
 
 ---
 
-## 9. API Security & Credential Protection
+## 9. API Security, Credential Protection & Prompt Defense
 
-In accordance with strict security requirements:
+In accordance with strict production security standards:
+- **Prompt Injection & Jailbreak Defense**: In-process heuristic scanner ([`prompt_guard.py`](file:///c:/Users/binu_/Documents/mcp-project/backend/app/services/prompt_guard.py)) detects and intercepts adversarial override attempts (*"ignore previous instructions"*, *"developer mode / DAN jailbreaks"*, and system prompt extraction attacks) with zero network overhead.
+- **Structural XML Sandboxing**: User turns are encapsulated within `<user_input>` tags with delimiter escaping to prevent breakout exploits. External tool outputs and document passages are isolated inside `<retrieved_context>` tags to prevent indirect prompt injection.
+- **Hardened System Prompt**: Appends strict boundary directives enforcing that content inside `<user_input>` and `<retrieved_context>` is untrusted data and must never override agent policies.
 - **No Plaintext Keys in Responses**: API endpoints (`/api/config`) return only boolean flags (`has_api_key: true`) and masked representations (`sk-...cdef`).
 - **Encryption at Rest**: User-submitted keys in the Settings modal are encrypted using **AES-256 (Fernet)** derived from the backend `SECRET_KEY` before insertion into the `config_settings` database table.
 - **Log Sanitation**: Sensitive headers and credentials are excluded from application logs.
-- **Version Control Exclusions**: All `.env`, `chatbot.db`, and credential files are included in `.gitignore`.
+- **Safe Math Evaluation**: Calculator AST parsing avoids dangerous `eval()` execution.
 
 ---
 
@@ -301,7 +304,7 @@ cp .env.example .env
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `SECRET_KEY` | `mcp-secret-key-...` | 32-character key for encrypting stored credentials |
-| `DATABASE_URL` | `postgresql+asyncpg://...` | Database connection string (PostgreSQL or SQLite) |
+| `DATABASE_URL` | `postgresql+asyncpg://...` | Database connection string (PostgreSQL via asyncpg) |
 | `REDIS_URL` | `redis://redis:6379/0` | Redis instance connection URL |
 | `MCP_SERVER_URL` | `http://mcp_server:8001/sse`| Endpoint to MCP Server SSE stream |
 | `MCP_SERVER_EXEC_URL` | `http://mcp_server:8001/api/tools/execute` | Fallback HTTP endpoint for direct tool execution |
