@@ -2,6 +2,43 @@ import React, { useEffect, useRef } from 'react';
 import { User, Bot, AlertCircle } from 'lucide-react';
 import ToolExecutionCard from './ToolExecutionCard';
 
+export function formatUserFriendlyError(raw) {
+  if (!raw) return 'The AI service encountered a temporary issue. Please try again.';
+  const str = String(raw);
+
+  if (
+    str.includes('function call turn comes immediately after') ||
+    str.includes('INVALID_ARGUMENT') ||
+    str.includes('sequence conflict')
+  ) {
+    return 'The AI model encountered a temporary conversation sequence conflict while executing tools. Context has been refreshed—please try re-sending your question or start a fresh chat.';
+  }
+  if (str.includes('not found') || str.includes('no longer available') || str.includes('404')) {
+    return 'The requested AI model is unavailable or has been deprecated. Please choose an active model (such as Gemini 3.5 Flash Lite or GPT-4o Mini) in Settings.';
+  }
+  if (str.includes('429') || str.includes('quota') || str.includes('rate limit')) {
+    return 'API rate limit or quota reached. Please wait a moment before sending another message.';
+  }
+  if (str.includes('401') || str.includes('Unauthorized') || str.includes('invalid_api_key')) {
+    return 'Invalid or missing API key. Please check your credentials in the Model Settings menu.';
+  }
+  if (str.includes('timeout') || str.includes('Timeout') || str.includes('unreachable')) {
+    return 'Connection timed out while waiting for the AI or tool response. Please check your network and try again.';
+  }
+  if (str.includes('context_length_exceeded') || str.includes('maximum context length')) {
+    return 'Conversation context limit reached for this model. Try starting a new chat or reducing the memory window in Settings.';
+  }
+
+  // Clean raw Python exception formatting / JSON dumps
+  let cleaned = str
+    .replace(/^Error:\s*/i, '')
+    .replace(/Error calling model '[^']+':\s*/i, '')
+    .replace(/\s*\{'message':\s*'\{[\s\S]*\}\',\s*'status':\s*'[^']+'\}/i, '')
+    .trim();
+
+  return cleaned.length > 0 ? cleaned : 'An unexpected error occurred while communicating with the AI service.';
+}
+
 export default function MessageList({ messages, isStreaming, currentStreamingMessage, streamingTools }) {
   const messagesEndRef = useRef(null);
 
@@ -13,12 +50,23 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
     if (!rawContent) return null;
 
     let content = rawContent;
-    // Sanitize any raw Python/JSON message block representations (e.g. [{'type': 'text', 'text': '...'}])
-    if (typeof content === 'string' && (content.trim().startsWith("[{'type':") || content.trim().startsWith('[{"type":'))) {
-      const match = content.match(/['"]text['"]:\s*['"]((?:\\.|[^'"\\])*)['"]/);
-      if (match && match[1]) {
-        content = match[1].replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\"/g, '"');
+    if (typeof content === 'string') {
+      // 1. Sanitize any raw Python/JSON message block representations (e.g. [{'type': 'text', 'text': '...'}])
+      if (content.trim().startsWith("[{'type':") || content.trim().startsWith('[{"type":')) {
+        const match = content.match(/['"]text['"]:\s*['"]((?:\\.|[^'"\\])*)['"]/);
+        if (match && match[1]) {
+          content = match[1].replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\"/g, '"');
+        }
       }
+
+      // 2. Remove robotic bracketed tool citations e.g. "(via the get_weather tool)"
+      content = content.replace(/\s*\(\s*via\s+the\s+`?[a-zA-Z0-9_]+`?\s+tool\s*\)/gi, '');
+
+      // 3. Clean redundant duplicate location brackets e.g. "Vyttila, Kerala, India (Vyttila, Kochi, India)"
+      content = content.replace(/([a-zA-Z\s]+,\s*[a-zA-Z\s]+,\s*[a-zA-Z\s]+)\s*\([^)]*\)/g, '$1');
+
+      // 4. Clean bracketed Fahrenheit into user-friendly slash notation e.g. "26.3°C (79.3°F)" -> "26.3°C / 79.3°F"
+      content = content.replace(/(\d+(?:\.\d+)?°C)\s*\(\s*(\d+(?:\.\d+)?°F)\s*\)/g, '$1 / $2');
     }
 
     // Simple robust markdown parser for paragraphs, code blocks, bold, inline code, and lists
@@ -196,7 +244,27 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
               )}
 
               {/* Message Content */}
-              <div>{renderContent(msg.content)}</div>
+              {isError ? (
+                <div className="space-y-1.5">
+                  <div className="font-semibold text-rose-300 text-xs flex items-center space-x-1.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                    <span>Unable to Complete Request</span>
+                  </div>
+                  <p className="text-xs text-rose-200/90 leading-relaxed font-sans">
+                    {formatUserFriendlyError(msg.content)}
+                  </p>
+                  {(msg.raw_error || (typeof msg.content === 'string' && (msg.content.includes('{') || msg.content.includes('Error calling model')))) && (
+                    <details className="mt-2 text-[11px] text-rose-400/80 cursor-pointer">
+                      <summary className="hover:text-rose-300 transition select-none">Technical Details</summary>
+                      <pre className="mt-1 max-h-32 overflow-x-auto whitespace-pre-wrap rounded bg-slate-950/80 p-2 font-mono text-[10px] text-rose-300/80 border border-rose-900/40">
+                        {msg.raw_error || msg.content}
+                      </pre>
+                    </details>
+                  )}
+                </div>
+              ) : (
+                <div>{renderContent(msg.content)}</div>
+              )}
 
               {/* Timestamp */}
               {msg.created_at && (

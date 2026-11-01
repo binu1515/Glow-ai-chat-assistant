@@ -121,7 +121,8 @@ export default function ChatInterface({
           const errMsg = {
             id: `err_${Date.now()}`,
             role: 'error',
-            content: `Error: ${data.error || 'Agent encountered an issue.'}`,
+            content: data.error || 'Agent encountered an issue.',
+            raw_error: data.raw_error || data.error,
             created_at: new Date().toISOString(),
           };
           setMessages((prev) => [...prev, errMsg]);
@@ -134,7 +135,8 @@ export default function ChatInterface({
           {
             id: `err_${Date.now()}`,
             role: 'error',
-            content: `Connection error: ${error.message}`,
+            content: error.message || 'Connection error with the server.',
+            raw_error: error.message,
             created_at: new Date().toISOString(),
           },
         ]);
@@ -228,10 +230,10 @@ export default function ChatInterface({
           <button
             onClick={onOpenCache}
             className="flex items-center space-x-1 rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white transition"
-            title="Redis Cache Hit/Miss Stats"
+            title="Data Caching & Performance Monitor"
           >
             <Database className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Redis</span>
+            <span className="hidden sm:inline">Cache</span>
           </button>
 
           <button
@@ -324,8 +326,8 @@ export default function ChatInterface({
             </div>
           </form>
 
-          <div className="mt-2 text-center text-[10px] text-slate-500">
-            Powered by Model Context Protocol (MCP) • LangChain / LangGraph Memory • Redis TTL Caching
+          <div className="mt-2 text-center text-[11px] text-slate-500 tracking-wide">
+            Powered by <span className="font-semibold text-slate-400">Glow.ai</span>
           </div>
         </div>
       </div>

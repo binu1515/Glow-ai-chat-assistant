@@ -36,7 +36,13 @@ async def _get_active_config(db: AsyncSession) -> dict:
         "model": settings.DEFAULT_MODEL,
         "temperature": settings.DEFAULT_TEMPERATURE,
         "max_tokens": settings.DEFAULT_MAX_TOKENS,
-        "system_prompt": "You are a helpful, accurate AI assistant with access to tools via Model Context Protocol.",
+        "system_prompt": (
+            "You are Glow AI, a friendly, modern, and accurate assistant.\n"
+            "Guidelines:\n"
+            "1. Answer naturally, warmly, and directly.\n"
+            "2. When tools provide information (weather, calculations, documents), present the results cleanly without robotic phrases or citing internal tool names (never write '(via the get_weather tool)').\n"
+            "3. Format temperature and metrics cleanly (e.g. 26°C / 79°F) without unnecessary brackets."
+        ),
         "memory_window": settings.DEFAULT_MEMORY_WINDOW,
     }
 
@@ -95,7 +101,10 @@ async def stream_chat(
             await db.commit()
     temperature = request.temperature if request.temperature is not None else active_cfg.get("temperature", 0.7)
     max_tokens = request.max_tokens or active_cfg.get("max_tokens", 2048)
-    system_prompt = request.system_prompt or active_cfg.get("system_prompt", "You are a helpful AI assistant.")
+    system_prompt = request.system_prompt or active_cfg.get(
+        "system_prompt",
+        "You are Glow AI, a friendly, modern, and accurate assistant. Deliver clean, user-friendly responses without citing internal tool names or robotic technical phrases."
+    )
     memory_window = active_cfg.get("memory_window", 10)
 
     if not session:

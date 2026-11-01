@@ -80,9 +80,11 @@ class AgentService:
             if msg.role == "user":
                 langchain_messages.append(HumanMessage(content=msg.content or ""))
             elif msg.role == "assistant":
-                # If assistant message had tool calls, replay the tool calls and results
-                # so provider APIs (OpenAI, OpenRouter, Anthropic) receive valid conversation schemas
-                if msg.tool_calls and msg.tool_results:
+                # If assistant message has final content, replay the synthesized answer directly.
+                # This keeps context intact while avoiding Gemini thought-signature expiration and function sequence errors.
+                if msg.content:
+                    langchain_messages.append(AIMessage(content=msg.content))
+                elif msg.tool_calls and msg.tool_results:
                     tool_calls_payload = []
                     for tc in msg.tool_calls:
                         tool_calls_payload.append({
@@ -98,14 +100,27 @@ class AgentService:
                             tc_id = msg.tool_calls[i].get("id")
                         tc_id = tc_id or f"call_{tr.get('name', 'tool')}"
                         langchain_messages.append(ToolMessage(content=str(tr.get("result", "")), tool_call_id=tc_id))
-                    if msg.content:
-                        langchain_messages.append(AIMessage(content=msg.content))
                 else:
                     langchain_messages.append(AIMessage(content=msg.content or ""))
             elif msg.role == "tool":
                 langchain_messages.append(ToolMessage(content=msg.content or "", tool_call_id="call_prev"))
 
-        return langchain_messages
+        # Healing: Ensure clean turn alternation (no consecutive User/Assistant turns, start with User)
+        healed: List[BaseMessage] = []
+        for m in langchain_messages:
+            if not healed:
+                if isinstance(m, HumanMessage):
+                    healed.append(m)
+                continue
+            last = healed[-1]
+            if isinstance(m, HumanMessage) and isinstance(last, HumanMessage):
+                healed[-1] = HumanMessage(content=f"{last.content}\n{m.content}")
+            elif isinstance(m, AIMessage) and isinstance(last, AIMessage) and not getattr(m, "tool_calls", None) and not getattr(last, "tool_calls", None):
+                healed[-1] = AIMessage(content=f"{last.content}\n{m.content}")
+            else:
+                healed.append(m)
+
+        return healed
 
     @staticmethod
     def build_langgraph_workflow(
@@ -274,7 +289,18 @@ class AgentService:
 
         except Exception as err:
             logger.error(f"Error during agent execution: {err}", exc_info=True)
-            yield f"event: error\ndata: {json.dumps({'error': str(err)})}\n\n"
+            err_raw = str(err)
+            if "function call turn comes immediately after" in err_raw or "INVALID_ARGUMENT" in err_raw:
+                friendly = "The AI model encountered a conversation sequence conflict while executing tools. Context has been refreshed—please try re-sending your question."
+            elif "not found" in err_raw or "no longer available" in err_raw:
+                friendly = "The requested AI model is unavailable or has been deprecated. Please select a supported model in Settings."
+            elif "429" in err_raw or "quota" in err_raw.lower() or "rate limit" in err_raw.lower():
+                friendly = "API rate limit reached. Please wait a moment before trying again."
+            elif "401" in err_raw or "Unauthorized" in err_raw or "API key" in err_raw:
+                friendly = "Invalid or missing API key. Please check your credentials in Settings."
+            else:
+                friendly = err_raw
+            yield f"event: error\ndata: {json.dumps({'error': friendly, 'raw_error': err_raw})}\n\n"
             return
 
         # Fallback token estimation if provider did not report

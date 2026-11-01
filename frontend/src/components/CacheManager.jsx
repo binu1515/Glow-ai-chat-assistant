@@ -49,7 +49,7 @@ export default function CacheManager({ isOpen, onClose }) {
           <div className="flex items-center space-x-2.5">
             <Database className="h-5 w-5 text-cyan-400" />
             <div>
-              <h2 className="text-base font-semibold text-white">Redis Caching & Performance Monitor</h2>
+              <h2 className="text-base font-semibold text-white">Data caching & Performance monitor</h2>
               <p className="text-[11px] text-slate-400">
                 Backend: {stats?.backend || 'Redis'} • Status: {stats?.status || 'Active'}
               </p>

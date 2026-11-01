@@ -193,7 +193,7 @@ export default function Sidebar({
           className="flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
         >
           <Database className="h-4 w-4 text-cyan-400" />
-          <span>Redis Cache Monitor</span>
+          <span>Data Cache Monitor</span>
         </button>
 
         <button

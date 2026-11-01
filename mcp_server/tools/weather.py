@@ -41,9 +41,45 @@ WEATHER_CODES = {
 }
 
 
+def _generate_location_candidates(location: str) -> list:
+    """
+    Generate fallback query candidates for geocoding composite location strings like
+    'Vyttila, Kochi, India' or 'Vyttila, Kochi' or 'Manhattan, New York'.
+    """
+    clean = location.strip()
+    if not clean:
+        return []
+
+    parts = [p.strip() for p in clean.split(",") if p.strip()]
+    candidates = [clean]
+
+    if len(parts) >= 3:
+        # 3 or more parts: [Locality, City, Country]
+        candidates.append(f"{parts[0]}, {parts[-1]}")  # e.g. Vyttila, India
+        candidates.append(f"{parts[1]}, {parts[-1]}")  # e.g. Kochi, India
+        candidates.append(parts[0])                    # e.g. Vyttila
+        candidates.append(parts[1])                    # e.g. Kochi
+    elif len(parts) == 2:
+        # 2 parts: [Locality, City] or [City, Country]
+        candidates.append(parts[0])                    # e.g. Vyttila
+        candidates.append(f"{parts[0]} {parts[1]}")    # e.g. Vyttila Kochi
+        candidates.append(parts[1])                    # e.g. Kochi
+
+    seen = set()
+    unique_candidates = []
+    for cand in candidates:
+        cand_lower = cand.lower()
+        if cand_lower not in seen:
+            seen.add(cand_lower)
+            unique_candidates.append(cand)
+
+    return unique_candidates
+
+
 async def get_weather_data(location: str) -> Dict[str, Any]:
     """
     Query Open-Meteo geocoding and forecast APIs for the given location name.
+    Supports composite queries (e.g. 'Vyttila, Kochi, India') with automatic candidate fallback.
     Returns structured weather information.
     """
     if not location or not location.strip():
@@ -53,18 +89,29 @@ async def get_weather_data(location: str) -> Dict[str, Any]:
     timeout = httpx.Timeout(10.0, connect=5.0)
 
     async with httpx.AsyncClient(timeout=timeout) as client:
-        # Step 1: Geocode location to lat/lon
+        # Step 1: Geocode location to lat/lon using candidate fallback
         geo_url = "https://geocoding-api.open-meteo.com/v1/search"
-        try:
-            geo_resp = await client.get(geo_url, params={"name": loc_name, "count": 1, "language": "en"})
-            geo_resp.raise_for_status()
-            geo_data = geo_resp.json()
-        except Exception as e:
-            return {"error": f"Failed to geocode location '{loc_name}': {str(e)}"}
+        candidates = _generate_location_candidates(loc_name)
+        results = None
 
-        results = geo_data.get("results")
+        for cand in candidates:
+            for attempt in range(2):
+                try:
+                    geo_resp = await client.get(geo_url, params={"name": cand, "count": 1, "language": "en"})
+                    if geo_resp.status_code == 200:
+                        geo_data = geo_resp.json()
+                        cand_results = geo_data.get("results")
+                        if cand_results:
+                            results = cand_results
+                            break
+                except Exception:
+                    if attempt == 0:
+                        continue
+            if results:
+                break
+
         if not results:
-            return {"error": f"Could not find coordinates for location '{loc_name}'. Please verify the city name."}
+            return {"error": f"Could not find coordinates for location '{loc_name}'. Please verify the city name (e.g., try 'Kochi' or 'Vyttila')."}
 
         first_match = results[0]
         lat = first_match["latitude"]
@@ -103,7 +150,8 @@ async def get_weather_data(location: str) -> Dict[str, Any]:
         weather_code = current.get("weather_code", 0)
         condition_desc = WEATHER_CODES.get(weather_code, "Partly Cloudy")
 
-        full_location = f"{resolved_name}, {admin1}, {country}".replace(", ,", ",").strip(", ")
+        loc_parts = [p.strip() for p in [resolved_name, admin1, country] if p and p.strip()]
+        full_location = ", ".join(loc_parts)
 
         return {
             "location": full_location,
@@ -129,8 +177,8 @@ def format_weather_summary(data: Dict[str, Any]) -> str:
     return (
         f"Weather for {data['location']}:\n"
         f"- Condition: {data['condition']}\n"
-        f"- Temperature: {data['temperature_c']}°C ({data['temperature_f']}°F)\n"
-        f"- Feels Like: {data['feels_like_c']}°C ({data['feels_like_f']}°F)\n"
+        f"- Temperature: {data['temperature_c']}°C / {data['temperature_f']}°F\n"
+        f"- Feels Like: {data['feels_like_c']}°C / {data['feels_like_f']}°F\n"
         f"- Humidity: {data['humidity_percent']}%\n"
         f"- Wind Speed: {data['wind_speed_kmh']} km/h\n"
         f"- Precipitation: {data['precipitation_mm']} mm\n"
