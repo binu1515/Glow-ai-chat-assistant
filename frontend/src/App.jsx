@@ -5,6 +5,7 @@ import SettingsModal from './components/SettingsModal';
 import TokenDashboard from './components/TokenDashboard';
 import CacheManager from './components/CacheManager';
 import DocumentUploader from './components/DocumentUploader';
+import { useTheme } from './context/ThemeContext';
 import {
   fetchSessions,
   createSession,
@@ -118,8 +119,10 @@ export default function App() {
     }
   };
 
+  const { isDark } = useTheme();
+
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 font-sans text-slate-100">
+    <div className={`flex h-screen w-screen overflow-hidden font-sans transition-colors duration-150 ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       {/* Sidebar */}
       <Sidebar
         sessions={sessions}

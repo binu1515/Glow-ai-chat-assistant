@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { User, Bot, AlertCircle } from 'lucide-react';
 import ToolExecutionCard from './ToolExecutionCard';
+import { useTheme } from '../context/ThemeContext';
 
 export function formatUserFriendlyError(raw) {
   if (!raw) return 'The AI service encountered a temporary issue. Please try again.';
@@ -41,6 +42,7 @@ export function formatUserFriendlyError(raw) {
 
 export default function MessageList({ messages, isStreaming, currentStreamingMessage, streamingTools }) {
   const messagesEndRef = useRef(null);
+  const { isDark } = useTheme();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,7 +82,12 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
       if (line.startsWith('```')) {
         if (inCodeBlock) {
           elements.push(
-            <pre key={`code-${idx}`} className="my-2 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs font-mono text-cyan-300 border border-slate-800">
+            <pre
+              key={`code-${idx}`}
+              className={`my-2 overflow-x-auto rounded-lg p-3 text-xs font-mono border ${
+                isDark ? 'bg-slate-950 text-cyan-300 border-slate-800' : 'bg-slate-900 text-cyan-300 border-slate-800 shadow-xs'
+              }`}
+            >
               <code>{codeBlockContent.join('\n')}</code>
             </pre>
           );
@@ -101,7 +108,7 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
       if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
         const itemText = line.trim().substring(2);
         elements.push(
-          <li key={`li-${idx}`} className="ml-4 list-disc text-sm text-slate-200">
+          <li key={`li-${idx}`} className={`ml-4 list-disc text-sm ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
             {formatInline(itemText)}
           </li>
         );
@@ -109,17 +116,29 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
       }
 
       if (line.startsWith('### ')) {
-        elements.push(<h3 key={`h3-${idx}`} className="text-base font-semibold text-slate-100 mt-2 mb-1">{line.replace('### ', '')}</h3>);
+        elements.push(
+          <h3 key={`h3-${idx}`} className={`text-base font-semibold mt-2 mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            {line.replace('### ', '')}
+          </h3>
+        );
         return;
       }
 
       if (line.startsWith('## ')) {
-        elements.push(<h2 key={`h2-${idx}`} className="text-lg font-bold text-slate-100 mt-3 mb-1">{line.replace('## ', '')}</h2>);
+        elements.push(
+          <h2 key={`h2-${idx}`} className={`text-lg font-bold mt-3 mb-1 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            {line.replace('## ', '')}
+          </h2>
+        );
         return;
       }
 
       if (line.startsWith('# ')) {
-        elements.push(<h1 key={`h1-${idx}`} className="text-xl font-bold text-slate-100 mt-4 mb-2">{line.replace('# ', '')}</h1>);
+        elements.push(
+          <h1 key={`h1-${idx}`} className={`text-xl font-bold mt-4 mb-2 ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+            {line.replace('# ', '')}
+          </h1>
+        );
         return;
       }
 
@@ -129,7 +148,7 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
       }
 
       elements.push(
-        <p key={`p-${idx}`} className="text-sm leading-relaxed text-slate-200 mb-1">
+        <p key={`p-${idx}`} className={`text-sm leading-relaxed mb-1 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
           {formatInline(line)}
         </p>
       );
@@ -137,7 +156,12 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
 
     if (inCodeBlock && codeBlockContent.length > 0) {
       elements.push(
-        <pre key="code-unclosed" className="my-2 overflow-x-auto rounded-lg bg-slate-950 p-3 text-xs font-mono text-cyan-300 border border-slate-800">
+        <pre
+          key="code-unclosed"
+          className={`my-2 overflow-x-auto rounded-lg p-3 text-xs font-mono border ${
+            isDark ? 'bg-slate-950 text-cyan-300 border-slate-800' : 'bg-slate-900 text-cyan-300 border-slate-800 shadow-xs'
+          }`}
+        >
           <code>{codeBlockContent.join('\n')}</code>
         </pre>
       );
@@ -152,13 +176,24 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
     return parts.map((part, i) => {
       if (part.startsWith('`') && part.endsWith('`')) {
         return (
-          <code key={i} className="rounded bg-slate-800/80 px-1.5 py-0.5 text-xs font-mono text-sky-400">
+          <code
+            key={i}
+            className={`rounded px-1.5 py-0.5 text-xs font-mono ${
+              isDark
+                ? 'bg-slate-800/80 text-sky-400'
+                : 'bg-slate-100 text-blue-700 border border-slate-200 font-semibold'
+            }`}
+          >
             {part.slice(1, -1)}
           </code>
         );
       }
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} className="font-semibold text-white">{part.slice(2, -2)}</strong>;
+        return (
+          <strong key={i} className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            {part.slice(2, -2)}
+          </strong>
+        );
       }
       return part;
     });
@@ -167,26 +202,26 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
       {messages.length === 0 && !isStreaming && (
-        <div className="flex h-full flex-col items-center justify-center text-center p-8 text-slate-400">
+        <div className={`flex h-full flex-col items-center justify-center text-center p-8 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg mb-4">
             <Bot className="h-8 w-8" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Full-Stack AI Assistant with MCP</h2>
-          <p className="max-w-md text-sm text-slate-400 mb-6">
+          <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Full-Stack AI Assistant with MCP</h2>
+          <p className={`max-w-md text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             Equipped with Model Context Protocol (MCP) tools for real-time math evaluation, live weather forecasting, and document semantic search.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl text-left text-xs">
-            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 hover:border-slate-700">
-              <span className="font-semibold text-amber-400">Calculator MCP Tool</span>
-              <p className="text-slate-400 mt-1">"Calculate sqrt(144) * (25 - 5) + sin(pi / 4)"</p>
+            <div className={`rounded-lg border p-3 transition ${isDark ? 'border-slate-800 bg-slate-900/50 hover:border-slate-700' : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'}`}>
+              <span className="font-semibold text-amber-500">Calculator MCP Tool</span>
+              <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>"Calculate sqrt(144) * (25 - 5) + sin(pi / 4)"</p>
             </div>
-            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 hover:border-slate-700">
-              <span className="font-semibold text-cyan-400">Weather MCP Tool</span>
-              <p className="text-slate-400 mt-1">"What is the current weather and humidity in Tokyo?"</p>
+            <div className={`rounded-lg border p-3 transition ${isDark ? 'border-slate-800 bg-slate-900/50 hover:border-slate-700' : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'}`}>
+              <span className="font-semibold text-cyan-500">Weather MCP Tool</span>
+              <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>"What is the current weather and humidity in Tokyo?"</p>
             </div>
-            <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-3 hover:border-slate-700">
-              <span className="font-semibold text-indigo-400">Document Search Tool</span>
-              <p className="text-slate-400 mt-1">"Search uploaded policy for Redis caching and token rules"</p>
+            <div className={`rounded-lg border p-3 transition ${isDark ? 'border-slate-800 bg-slate-900/50 hover:border-slate-700' : 'border-slate-200 bg-white hover:border-slate-300 shadow-xs'}`}>
+              <span className="font-semibold text-indigo-500">Document Search Tool</span>
+              <p className={`mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>"Search uploaded policy for Redis caching and token rules"</p>
             </div>
           </div>
         </div>
@@ -208,7 +243,9 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
                   ? 'bg-blue-600 text-white'
                   : isError
                   ? 'bg-rose-600 text-white'
-                  : 'bg-indigo-600/30 text-indigo-300 ring-1 ring-indigo-500/30'
+                  : isDark
+                  ? 'bg-indigo-600/30 text-indigo-300 ring-1 ring-indigo-500/30'
+                  : 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200 shadow-xs'
               }`}
             >
               {isUser ? <User className="h-4 w-4" /> : isError ? <AlertCircle className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -220,8 +257,12 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
                 isUser
                   ? 'bg-blue-600 text-white rounded-tr-none'
                   : isError
-                  ? 'bg-rose-950/40 border border-rose-800/60 text-rose-200 rounded-tl-none'
-                  : 'bg-slate-900/90 border border-slate-800 text-slate-100 rounded-tl-none'
+                  ? isDark
+                    ? 'bg-rose-950/40 border border-rose-800/60 text-rose-200 rounded-tl-none'
+                    : 'bg-rose-50 border border-rose-200 text-rose-900 rounded-tl-none shadow-xs'
+                  : isDark
+                  ? 'bg-slate-900/90 border border-slate-800 text-slate-100 rounded-tl-none'
+                  : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none shadow-sm'
               }`}
             >
               {/* Tool invocations if any */}
@@ -246,17 +287,21 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
               {/* Message Content */}
               {isError ? (
                 <div className="space-y-1.5">
-                  <div className="font-semibold text-rose-300 text-xs flex items-center space-x-1.5">
-                    <AlertCircle className="w-4 h-4 text-rose-400" />
+                  <div className={`font-semibold text-xs flex items-center space-x-1.5 ${isDark ? 'text-rose-300' : 'text-rose-700'}`}>
+                    <AlertCircle className={`w-4 h-4 ${isDark ? 'text-rose-400' : 'text-rose-600'}`} />
                     <span>Unable to Complete Request</span>
                   </div>
-                  <p className="text-xs text-rose-200/90 leading-relaxed font-sans">
+                  <p className={`text-xs leading-relaxed font-sans ${isDark ? 'text-rose-200/90' : 'text-rose-800'}`}>
                     {formatUserFriendlyError(msg.content)}
                   </p>
                   {(msg.raw_error || (typeof msg.content === 'string' && (msg.content.includes('{') || msg.content.includes('Error calling model')))) && (
-                    <details className="mt-2 text-[11px] text-rose-400/80 cursor-pointer">
-                      <summary className="hover:text-rose-300 transition select-none">Technical Details</summary>
-                      <pre className="mt-1 max-h-32 overflow-x-auto whitespace-pre-wrap rounded bg-slate-950/80 p-2 font-mono text-[10px] text-rose-300/80 border border-rose-900/40">
+                    <details className={`mt-2 text-[11px] cursor-pointer ${isDark ? 'text-rose-400/80' : 'text-rose-600'}`}>
+                      <summary className={`transition select-none ${isDark ? 'hover:text-rose-300' : 'hover:text-rose-800'}`}>Technical Details</summary>
+                      <pre className={`mt-1 max-h-32 overflow-x-auto whitespace-pre-wrap rounded p-2 font-mono text-[10px] border ${
+                        isDark
+                          ? 'bg-slate-950/80 text-rose-300/80 border-rose-900/40'
+                          : 'bg-rose-100/70 text-rose-900 border-rose-300'
+                      }`}>
                         {msg.raw_error || msg.content}
                       </pre>
                     </details>
@@ -268,7 +313,7 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
 
               {/* Timestamp */}
               {msg.created_at && (
-                <div className="mt-1 text-right text-[10px] text-slate-400/80">
+                <div className={`mt-1 text-right text-[10px] ${isDark ? 'text-slate-400/80' : 'text-slate-400'}`}>
                   {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               )}
@@ -280,11 +325,19 @@ export default function MessageList({ messages, isStreaming, currentStreamingMes
       {/* Real-time Streaming Message */}
       {isStreaming && (
         <div className="flex items-start space-x-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600/30 text-indigo-300 ring-1 ring-indigo-500/30">
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+            isDark
+              ? 'bg-indigo-600/30 text-indigo-300 ring-1 ring-indigo-500/30'
+              : 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200 shadow-xs'
+          }`}>
             <Bot className="h-4 w-4" />
           </div>
 
-          <div className="relative max-w-[85%] md:max-w-[75%] rounded-2xl rounded-tl-none bg-slate-900/90 border border-slate-800 px-4 py-3 shadow-md">
+          <div className={`relative max-w-[85%] md:max-w-[75%] rounded-2xl rounded-tl-none px-4 py-3 shadow-md ${
+            isDark
+              ? 'bg-slate-900/90 border border-slate-800 text-slate-100'
+              : 'bg-white border border-slate-200 text-slate-800 shadow-sm'
+          }`}>
             {/* Live Tool Execution Status */}
             {streamingTools && streamingTools.length > 0 && (
               <div className="mb-3 space-y-2">

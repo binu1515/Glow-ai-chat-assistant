@@ -12,6 +12,7 @@ import {
   X,
   Bot,
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Sidebar({
   sessions,
@@ -49,23 +50,29 @@ export default function Sidebar({
     setEditingId(null);
   };
 
+  const { isDark } = useTheme();
+
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-800 bg-slate-950 transition-transform duration-200 md:static md:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-30 flex w-72 flex-col transition-transform duration-200 md:static md:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
+      } ${
+        isDark
+          ? 'border-r border-slate-800 bg-slate-950 text-slate-100'
+          : 'border-r border-slate-200 bg-white text-slate-800 shadow-sm'
       }`}
     >
       {/* Brand Header */}
-      <div className="flex h-16 items-center justify-between border-b border-slate-800 px-4">
+      <div className={`flex h-16 items-center justify-between border-b px-4 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
         <div className="flex items-center space-x-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md">
             <Bot className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-white tracking-tight">Glow AI</h1>
+            <h1 className={`text-sm font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Glow AI</h1>
             <div className="flex items-center space-x-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-[11px] font-medium text-slate-400">MCP Protocol 2.0</span>
+              <span className={`text-[11px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MCP Protocol 2.0</span>
             </div>
           </div>
         </div>
@@ -84,12 +91,12 @@ export default function Sidebar({
 
       {/* Sessions List */}
       <div className="flex-1 overflow-y-auto px-3 py-1 space-y-1">
-        <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <div className={`px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
           Chat History
         </div>
 
         {sessions.length === 0 ? (
-          <div className="p-4 text-center text-xs text-slate-500">
+          <div className={`p-4 text-center text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
             No active conversations. Start a new chat above!
           </div>
         ) : (
@@ -103,19 +110,25 @@ export default function Sidebar({
                 onClick={() => onSelectSession(sess.id)}
                 className={`group relative flex items-center justify-between rounded-lg px-3 py-2 text-xs font-medium cursor-pointer transition ${
                   isActive
-                    ? 'bg-slate-800/90 text-white shadow-sm ring-1 ring-slate-700'
-                    : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                    ? isDark
+                      ? 'bg-slate-800/90 text-white shadow-sm ring-1 ring-slate-700'
+                      : 'bg-blue-50 text-blue-700 shadow-xs ring-1 ring-blue-200 font-semibold'
+                    : isDark
+                    ? 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
               >
                 <div className="flex items-center space-x-2.5 overflow-hidden">
-                  <MessageSquare className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-blue-400' : 'text-slate-500'}`} />
+                  <MessageSquare className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-blue-500' : isDark ? 'text-slate-500' : 'text-slate-400'}`} />
                   {isEditing ? (
                     <input
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-36 rounded bg-slate-950 px-1.5 py-0.5 text-xs text-white border border-blue-500 outline-none"
+                      className={`w-36 rounded px-1.5 py-0.5 text-xs border outline-none ${
+                        isDark ? 'bg-slate-950 text-white border-blue-500' : 'bg-white text-slate-900 border-blue-500 shadow-xs'
+                      }`}
                       autoFocus
                     />
                   ) : (
@@ -129,14 +142,14 @@ export default function Sidebar({
                     <>
                       <button
                         onClick={(e) => saveRename(sess.id, e)}
-                        className="rounded p-1 text-emerald-400 hover:bg-slate-700"
+                        className={`rounded p-1 text-emerald-500 transition ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-200'}`}
                         title="Save"
                       >
                         <Check className="h-3 w-3" />
                       </button>
                       <button
                         onClick={cancelRename}
-                        className="rounded p-1 text-slate-400 hover:bg-slate-700"
+                        className={`rounded p-1 transition ${isDark ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
                         title="Cancel"
                       >
                         <X className="h-3 w-3" />
@@ -146,7 +159,7 @@ export default function Sidebar({
                     <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => startRename(sess, e)}
-                        className="rounded p-1 text-slate-400 hover:bg-slate-700 hover:text-slate-200"
+                        className={`rounded p-1 transition ${isDark ? 'text-slate-400 hover:bg-slate-700 hover:text-slate-200' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-800'}`}
                         title="Rename"
                       >
                         <Edit2 className="h-3 w-3" />
@@ -156,7 +169,7 @@ export default function Sidebar({
                           e.stopPropagation();
                           onDeleteSession(sess.id);
                         }}
-                        className="rounded p-1 text-slate-400 hover:bg-rose-900/60 hover:text-rose-300"
+                        className={`rounded p-1 transition ${isDark ? 'text-slate-400 hover:bg-rose-900/60 hover:text-rose-300' : 'text-slate-400 hover:bg-rose-100 hover:text-rose-600'}`}
                         title="Delete"
                       >
                         <Trash2 className="h-3 w-3" />
@@ -171,10 +184,12 @@ export default function Sidebar({
       </div>
 
       {/* Bottom Modals Navigation */}
-      <div className="border-t border-slate-800 p-3 space-y-1 bg-slate-950/80">
+      <div className={`border-t p-3 space-y-1 transition-colors ${isDark ? 'border-slate-800 bg-slate-950/80' : 'border-slate-200 bg-slate-50/80'}`}>
         <button
           onClick={onOpenSettings}
-          className="flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+          className={`flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+            isDark ? 'text-slate-300 hover:bg-slate-800 hover:text-white' : 'text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+          }`}
         >
           <Settings className="h-4 w-4 text-slate-400" />
           <span>Model Settings</span>
@@ -182,25 +197,31 @@ export default function Sidebar({
 
         <button
           onClick={onOpenAnalytics}
-          className="flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+          className={`flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+            isDark ? 'text-slate-300 hover:bg-slate-800 hover:text-white' : 'text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+          }`}
         >
-          <BarChart3 className="h-4 w-4 text-emerald-400" />
+          <BarChart3 className="h-4 w-4 text-emerald-500" />
           <span>Token Usage Dashboard</span>
         </button>
 
         <button
           onClick={onOpenCache}
-          className="flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+          className={`flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+            isDark ? 'text-slate-300 hover:bg-slate-800 hover:text-white' : 'text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+          }`}
         >
-          <Database className="h-4 w-4 text-cyan-400" />
+          <Database className="h-4 w-4 text-cyan-500" />
           <span>Data Cache Monitor</span>
         </button>
 
         <button
           onClick={onOpenDocuments}
-          className="flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition"
+          className={`flex w-full items-center space-x-2.5 rounded-lg px-3 py-2 text-xs font-medium transition ${
+            isDark ? 'text-slate-300 hover:bg-slate-800 hover:text-white' : 'text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+          }`}
         >
-          <FileText className="h-4 w-4 text-indigo-400" />
+          <FileText className="h-4 w-4 text-indigo-500" />
           <span>Document Management</span>
         </button>
       </div>

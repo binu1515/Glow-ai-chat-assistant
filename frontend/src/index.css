@@ -1,4 +1,4 @@
-:root {
+:root, :root.dark {
   --bg-primary: #0b0f19;
   --bg-secondary: #111827;
   --bg-tertiary: #1f2937;
@@ -13,6 +13,23 @@
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
+}
+
+:root.light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-hover: #e2e8f0;
+  --border-color: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --accent-blue: #2563eb;
+  --accent-purple: #7c3aed;
+  --accent-emerald: #059669;
+  --accent-amber: #d97706;
+  --accent-rose: #e11d48;
 }
 
 * {
@@ -76,15 +93,23 @@ body {
 
 /* Code block formatting */
 pre {
-  background: #090d16 !important;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 12px;
   overflow-x: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.875rem;
-  color: #38bdf8;
   margin: 8px 0;
+}
+
+:root.dark pre, body:not(.light) pre {
+  background: #090d16;
+  color: #38bdf8;
+}
+
+:root.light pre, body.light pre {
+  background: #ffffff;
+  color: #0f172a;
 }
 
 code {
@@ -112,4 +137,21 @@ pre code {
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
   border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.light code {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0284c7;
+}
+
+.light .badge-hit {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.light .badge-miss {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.35);
 }
