@@ -70,10 +70,6 @@ export default function Sidebar({
           </div>
           <div>
             <h1 className={`text-sm font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Glow AI</h1>
-            <div className="flex items-center space-x-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className={`text-[11px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>MCP Protocol 2.0</span>
-            </div>
           </div>
         </div>
       </div>
