@@ -130,6 +130,7 @@ flowchart TD
     DocTool <--> DocsDir
     DocUI -->|Upload Files| Router --> DocsDir
 ```
+<img width="914" height="602" alt="image" src="https://github.com/user-attachments/assets/e56922a6-235d-4e4f-9ba3-60689a2221fe" />
 
 ---
 
