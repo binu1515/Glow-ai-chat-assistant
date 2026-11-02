@@ -81,55 +81,9 @@ This application delivers an end-to-end architecture demonstrating:
 
 ## 3. System Architecture Diagram
 
-```mermaid
-flowchart TD
-    subgraph Client ["Frontend (React.js + Tailwind)"]
-        UI["Chat Interface & SSE Consumer"]
-        SettingsUI["Model Settings & Key Vault"]
-        DashboardUI["Token Analytics Dashboard"]
-        CacheUI["Redis Cache Monitor"]
-        DocUI["Document Knowledge Base"]
-    end
 
-    subgraph Backend ["FastAPI Backend Application"]
-        Router["API Gateway / Routers"]
-        Agent["LangChain / LangGraph Agent Loop"]
-        MemoryMgr["Conversation Memory & Windowing"]
-        Tracker["Token Usage Tracker & Pricing Engine"]
-        Vault["Secret Vault (AES-256 Fernet)"]
-        MCPClient["MCP Client Manager"]
-    end
 
-    subgraph MCP ["MCP Server Microservice"]
-        MCPServer["MCP Starlette / SSE Server (:8001)"]
-        CalcTool["Safe Math Evaluator (AST)"]
-        WeatherTool["Live Weather Tool (Open-Meteo)"]
-        DocTool["Document Search Tool"]
-    end
 
-    subgraph Storage ["Infrastructure Services"]
-        PG[("PostgreSQL Database (:5432)")]
-        RedisStore[("Redis Cache & Metrics (:6379)")]
-        DocsDir["Shared Volume (/app/data/documents)"]
-    end
-
-    UI <-->|SSE Stream & REST| Router
-    Router --> Agent
-    Agent <--> MemoryMgr
-    MemoryMgr <--> PG
-    Agent --> Tracker
-    Tracker --> PG
-    Agent <--> MCPClient
-    Vault <--> PG
-
-    MCPClient <-->|Check & Store Cache (TTL)| RedisStore
-    MCPClient <-->|SSE /messages| MCPServer
-    MCPServer --> CalcTool
-    MCPServer --> WeatherTool
-    MCPServer --> DocTool
-    DocTool <--> DocsDir
-    DocUI -->|Upload Files| Router --> DocsDir
-```
 <img width="914" height="602" alt="image" src="https://github.com/user-attachments/assets/e56922a6-235d-4e4f-9ba3-60689a2221fe" />
 
 ---
